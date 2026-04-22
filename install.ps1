@@ -67,6 +67,29 @@ function AddFailure($section, $item, $reason, $retry) {
     })
 }
 
+# One-line descriptions shown during install so colleagues see what each thing does
+$descriptions = @{
+    'pptx-enterprise'                      = 'IRM-safe PowerPoint automation via COM'
+    'docx-enterprise'                      = 'IRM-safe Word automation via COM'
+    'excel-enterprise'                     = 'IRM-safe Excel automation via COM'
+    'pptx'                                 = 'generic PowerPoint creation/editing'
+    'docx'                                 = 'generic Word document handling'
+    'pdf'                                  = 'PDF read, merge, split, OCR'
+    'xlsx'                                 = 'generic Excel spreadsheet handling'
+    'excel-toolkit'                        = 'Excel read/edit/analyze helpers'
+    'writing-plans'                        = 'plan and spec scaffolding before coding'
+    'research'                             = 'structured research (MS Learn + web + WorkIQ)'
+    'meeting-prep'                         = 'meeting agenda and talking-points workflow'
+    'project-status'                       = 'project status report generation'
+    'microsoft-docs@awesome-copilot'       = 'live Microsoft Learn documentation search'
+    'power-bi-development@awesome-copilot' = 'Power BI / DAX guidance and review'
+    'workiq@copilot-plugins'               = 'M365 workplace intelligence (email, meetings, Teams)'
+}
+function Desc($name) {
+    if ($descriptions.ContainsKey($name)) { return " - $($descriptions[$name])" }
+    return ''
+}
+
 Write-Host ""
 Write-Host "CLI Buddy Starter - Copilot CLI setup" -ForegroundColor White
 Write-Host "Source: https://github.com/$Repo (branch: $Branch)" -ForegroundColor DarkGray
@@ -104,6 +127,7 @@ if (InSkip 'enterprise') {
         param([string]$Skill)
         $apiUrl = "https://api.github.com/repos/$Repo/contents/skills/$Skill" + "?ref=$Branch"
         $target = Join-Path $skillsRoot $Skill
+        Info "Installing $Skill$(Desc $Skill)"
         if ((Test-Path $target) -and -not $Force) {
             Warn2 "$Skill already exists (use -Force to overwrite). Skipping."
             return $true
@@ -161,7 +185,7 @@ if (InSkip 'anthropic') {
 } else {
     $okCount = 0; $failCount = 0
     foreach ($s in $AnthropicSkills) {
-        Info "Installing anthropics/skills :: $s"
+        Info "Installing anthropics/skills :: $s$(Desc $s)"
         try {
             $out = & gh skill install anthropics/skills $s --scope user --force 2>&1
             if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
@@ -190,7 +214,7 @@ if (InSkip 'community') {
     $okCount = 0; $failCount = 0
 
     foreach ($s in $SentrySkills) {
-        Info "Installing Sentry01/copilot-cli-skills :: $s"
+        Info "Installing Sentry01/copilot-cli-skills :: $s$(Desc $s)"
         try {
             $out = & gh skill install Sentry01/copilot-cli-skills $s --scope user --force 2>&1
             if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
@@ -205,7 +229,7 @@ if (InSkip 'community') {
     }
 
     foreach ($s in $JimbanachSkills) {
-        Info "Installing jimbanach/copilot-cli-starter :: $s@$JimbanachRef"
+        Info "Installing jimbanach/copilot-cli-starter :: $s@$JimbanachRef$(Desc $s)"
         try {
             $out = & gh skill install jimbanach/copilot-cli-starter "$s@$JimbanachRef" --scope user --force 2>&1
             if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
@@ -235,7 +259,7 @@ if (InSkip 'plugins') {
 } else {
     $okCount = 0; $failCount = 0
     foreach ($p in $Plugins) {
-        Info "Installing plugin :: $p"
+        Info "Installing plugin :: $p$(Desc $p)"
         try {
             $out = & copilot plugin install $p 2>&1
             if ($LASTEXITCODE -eq 0) { Ok "$p installed"; $okCount++ }
