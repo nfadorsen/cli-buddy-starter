@@ -240,15 +240,15 @@ if (InSkip 'anthropic') {
     foreach ($s in $AnthropicSkills) {
         Info "Installing anthropics/skills :: $s$(Desc $s)"
         try {
-            $out = & gh skill install anthropics/skills $s --scope user --force 2>&1
+            $out = & gh skill install anthropics/skills $s --agent github-copilot --scope user --force 2>&1
             if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
             else {
                 Fail2 "$s failed: $out"; $failCount++
-                AddFailure 'Anthropic skills' $s $out "gh skill install anthropics/skills $s --scope user --force"
+                AddFailure 'Anthropic skills' $s $out "gh skill install anthropics/skills $s --agent github-copilot --scope user --force"
             }
         } catch {
             Fail2 "$s failed: $($_.Exception.Message)"; $failCount++
-            AddFailure 'Anthropic skills' $s $_.Exception.Message "gh skill install anthropics/skills $s --scope user --force"
+            AddFailure 'Anthropic skills' $s $_.Exception.Message "gh skill install anthropics/skills $s --agent github-copilot --scope user --force"
         }
     }
     $summary['Anthropic skills'] = "$okCount ok, $failCount failed"
@@ -269,30 +269,30 @@ if (InSkip 'community') {
     foreach ($s in $SentrySkills) {
         Info "Installing Sentry01/copilot-cli-skills :: $s$(Desc $s)"
         try {
-            $out = & gh skill install Sentry01/copilot-cli-skills $s --scope user --force 2>&1
+            $out = & gh skill install Sentry01/copilot-cli-skills $s --agent github-copilot --scope user --force 2>&1
             if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
             else {
                 Fail2 "$s failed: $out"; $failCount++
-                AddFailure 'Community skills' $s $out "gh skill install Sentry01/copilot-cli-skills $s --scope user --force"
+                AddFailure 'Community skills' $s $out "gh skill install Sentry01/copilot-cli-skills $s --agent github-copilot --scope user --force"
             }
         } catch {
             Fail2 "$s failed: $($_.Exception.Message)"; $failCount++
-            AddFailure 'Community skills' $s $_.Exception.Message "gh skill install Sentry01/copilot-cli-skills $s --scope user --force"
+            AddFailure 'Community skills' $s $_.Exception.Message "gh skill install Sentry01/copilot-cli-skills $s --agent github-copilot --scope user --force"
         }
     }
 
     foreach ($s in $JimbanachSkills) {
         Info "Installing jimbanach/copilot-cli-starter :: $s@$JimbanachRef$(Desc $s)"
         try {
-            $out = & gh skill install jimbanach/copilot-cli-starter "$s@$JimbanachRef" --scope user --force 2>&1
+            $out = & gh skill install jimbanach/copilot-cli-starter "$s@$JimbanachRef" --agent github-copilot --scope user --force 2>&1
             if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
             else {
                 Fail2 "$s failed: $out"; $failCount++
-                AddFailure 'Community skills' $s $out "gh skill install jimbanach/copilot-cli-starter $s@$JimbanachRef --scope user --force"
+                AddFailure 'Community skills' $s $out "gh skill install jimbanach/copilot-cli-starter $s@$JimbanachRef --agent github-copilot --scope user --force"
             }
         } catch {
             Fail2 "$s failed: $($_.Exception.Message)"; $failCount++
-            AddFailure 'Community skills' $s $_.Exception.Message "gh skill install jimbanach/copilot-cli-starter $s@$JimbanachRef --scope user --force"
+            AddFailure 'Community skills' $s $_.Exception.Message "gh skill install jimbanach/copilot-cli-starter $s@$JimbanachRef --agent github-copilot --scope user --force"
         }
     }
 
