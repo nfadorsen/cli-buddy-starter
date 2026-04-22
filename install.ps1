@@ -33,7 +33,8 @@ param(
     ),
     [ValidateSet('enterprise','anthropic','community','plugins','snippet','all','none')]
     [string[]]$Skip = @('none'),
-    [switch]$Force
+    [switch]$Force,
+    [switch]$AddSnippet
 )
 
 $ErrorActionPreference = 'Stop'
@@ -251,23 +252,88 @@ if (InSkip 'plugins') {
     if ($okCount -gt 0) { Info "Restart any running Copilot CLI sessions for plugins to load." }
 }
 
-# ------------- 4. Instructions snippet (manual) -------------
-Section 4 "Instructions snippet (optional, manual)"
+# ------------- 4. Instructions snippet (interactive or -AddSnippet) -------------
+Section 4 "Instructions snippet (optional)"
 
 if (InSkip 'snippet') {
     Warn2 "Skipping snippet step (per -Skip)"
     $summary['Instructions snippet'] = 'skipped (per -Skip)'
 } else {
-    Info "The instructions snippet is a small guidance block that makes Copilot CLI"
-    Info "route Office files more predictably. It's optional - the skills work without it."
+    $snippetUrl  = "https://raw.githubusercontent.com/$Repo/$Branch/copilot-instructions.snippet.md"
+    $targetDir   = Join-Path $env:USERPROFILE '.copilot'
+    $targetFile  = Join-Path $targetDir 'copilot-instructions.md'
+    $beginMarker = '<!-- BEGIN: cli-buddy-starter enterprise skills v1 -->'
+    $endMarker   = '<!-- END: cli-buddy-starter enterprise skills v1 -->'
+
+    $fileExists = Test-Path $targetFile
+    $blockPresent = $false
+    $existingContent = ''
+    if ($fileExists) {
+        $existingContent = Get-Content $targetFile -Raw -ErrorAction SilentlyContinue
+        if ($existingContent -and $existingContent.Contains($beginMarker)) { $blockPresent = $true }
+    }
+
+    Info "The snippet is a guidance block that makes Copilot CLI route Office files"
+    Info "more predictably. Optional - the skills work without it."
     Info ""
-    Info "To add it (recommended - applies everywhere):"
-    Info "  1. Open: https://github.com/$Repo/blob/$Branch/copilot-instructions.snippet.md"
-    Info "  2. Click Raw, copy EVERYTHING (including BEGIN/END markers)"
-    Info "  3. Paste at the END of ~/.copilot/copilot-instructions.md (create if missing)"
-    Info "  4. Do NOT replace anything above the block"
-    Info ""
-    Info "  (For a single repo only, paste into that repo's .github/copilot-instructions.md instead.)"
+    if ($blockPresent)  { Info "Detected: existing snippet block in $targetFile" }
+    elseif ($fileExists){ Info "Detected: $targetFile exists (no snippet block yet)" }
+    else                { Info "Detected: $targetFile does not exist (would be created)" }
+
+    $proceed = $false
+    if ($AddSnippet) {
+        Info "Proceeding automatically (-AddSnippet)"
+        $proceed = $true
+    } else {
+        $promptText = if ($blockPresent) { "Replace the existing snippet block? [y/N]" } else { "Append snippet to $targetFile now? [y/N]" }
+        try {
+            $answer = Read-Host $promptText
+            $proceed = ($answer -match '^(y|yes)$')
+        } catch {
+            Warn2 "Non-interactive session - skipping automatic install."
+            $proceed = $false
+        }
+    }
+
+    if ($proceed) {
+        try {
+            $snippet = (Invoke-WebRequest -Uri $snippetUrl -UseBasicParsing).Content
+            if (-not (Test-Path $targetDir)) { New-Item -ItemType Directory -Path $targetDir -Force | Out-Null }
+
+            if ($blockPresent) {
+                $bi = $existingContent.IndexOf($beginMarker)
+                $ei = $existingContent.IndexOf($endMarker) + $endMarker.Length
+                $newContent = $existingContent.Substring(0, $bi) + $snippet.TrimEnd() + $existingContent.Substring($ei)
+                Set-Content -Path $targetFile -Value $newContent -Encoding UTF8
+                Ok "Replaced snippet block in $targetFile"
+                $summary['Instructions snippet'] = "updated ($targetFile)"
+            } else {
+                $needsSeparator = $fileExists -and $existingContent -and $existingContent.TrimEnd().Length -gt 0
+                $toWrite = if ($needsSeparator) { "`r`n`r`n" + $snippet.TrimEnd() + "`r`n" } else { $snippet.TrimEnd() + "`r`n" }
+                Add-Content -Path $targetFile -Value $toWrite -Encoding UTF8 -NoNewline
+                Ok "Appended snippet to $targetFile"
+                $summary['Instructions snippet'] = "installed ($targetFile)"
+            }
+            Info "To remove later: delete everything between the BEGIN / END markers."
+        } catch {
+            Fail2 "Snippet install failed: $($_.Exception.Message)"
+            AddFailure 'Instructions snippet' 'append/replace' $_.Exception.Message "See README Step 4 for manual copy-paste"
+            $summary['Instructions snippet'] = 'failed (see manual steps)'
+            $proceed = $false
+        }
+    }
+
+    if (-not $proceed -and $summary['Instructions snippet'] -notmatch 'installed|updated|failed|skipped') {
+        Info ""
+        Info "Manual steps:"
+        Info "  1. Open: https://github.com/$Repo/blob/$Branch/copilot-instructions.snippet.md"
+        Info "  2. Click Raw, copy EVERYTHING (including BEGIN/END markers)"
+        Info "  3. Paste at the END of $targetFile (create if missing)"
+        Info "  4. Do NOT replace anything above the block"
+        Info ""
+        Info "  (For a single repo only, paste into <repo>/.github/copilot-instructions.md instead.)"
+        $summary['Instructions snippet'] = 'declined (see manual steps above)'
+    }
 }
 
 # ------------- summary -------------

@@ -86,30 +86,50 @@ Copilot plugins        : 3 ok, 0 failed
 Instructions snippet   : manual (see next steps)
 ```
 
-## Step 4 (manual) - add the instructions snippet
+## Step 4 (interactive) - add the instructions snippet
 
 This is optional but recommended. It makes Copilot CLI behave more
 predictably around Office files.
 
-**Pick where to install it:**
+**The installer asks you.** When it reaches Step 4 it prints:
 
-- **Recommended — user-level (applies everywhere):** `~/.copilot/copilot-instructions.md`
-  Create the file if it doesn't exist. Copilot CLI loads this on every session,
-  so the IRM / Office routing guidance applies no matter which repo you're in.
-- **Alternative — repo-level (applies only inside one repo):**
-  `<repo>/.github/copilot-instructions.md`. Use this only if you want the
-  guidance scoped to a specific project.
+```
+Detected: C:\Users\<you>\.copilot\copilot-instructions.md does not exist (would be created)
+Append snippet to C:\Users\<you>\.copilot\copilot-instructions.md now? [y/N]:
+```
 
-**Steps:**
+- Press **`y`** to append automatically. The installer downloads the latest
+  snippet and writes it to `~/.copilot/copilot-instructions.md` (user-level -
+  applies everywhere). Anything already in the file is preserved.
+- Press **Enter** (default `N`) to skip. You'll see manual copy-paste steps
+  printed below.
 
-1. Open this file in your browser:
-   https://github.com/nfadorsen/cli-buddy-starter/blob/main/copilot-instructions.snippet.md
-2. Click **Raw** (top-right of the file view).
-3. Copy **everything** - including the `<!-- BEGIN ... -->` and
-   `<!-- END ... -->` comment lines.
-4. Open the target file (see above) - create it if it doesn't exist.
-5. Paste **at the end** of the file. Don't replace anything above.
-6. Save. Next Copilot CLI session picks it up automatically.
+**Skip the prompt and auto-confirm:** pass `-AddSnippet`.
+
+```powershell
+& ([scriptblock]::Create((iwr -UseBasicParsing `
+  https://raw.githubusercontent.com/nfadorsen/cli-buddy-starter/main/install.ps1).Content)) `
+  -AddSnippet
+```
+
+### Re-running the installer
+
+- If the BEGIN/END block is already in your file, the installer detects it
+  and offers to **replace** it in-place. No duplicates, no drift.
+- Anything outside the BEGIN/END markers is left exactly as-is.
+
+### Repo-scoped install (alternative)
+
+If you want the guidance only inside one repo, paste the snippet manually
+into `<repo>/.github/copilot-instructions.md` instead. The installer
+always targets the user-level file.
+
+### Manual copy-paste (if you declined the prompt)
+
+1. Open https://github.com/nfadorsen/cli-buddy-starter/blob/main/copilot-instructions.snippet.md
+2. Click **Raw**, copy **everything** (including BEGIN/END markers)
+3. Paste at the **end** of `~/.copilot/copilot-instructions.md` (create if missing)
+4. Don't replace anything above the block. Save.
 
 ### To update the snippet later
 
@@ -156,6 +176,7 @@ Parameters:
 |---|---|---|
 | `-Skip` | `none` | `enterprise`, `anthropic`, `community`, `plugins`, `snippet`, `all`, or `none` (combine with commas) |
 | `-Force` | off | Overwrite existing enterprise skill folders |
+| `-AddSnippet` | off | Auto-confirm the Step 4 snippet install (no `[y/N]` prompt) |
 | `-EnterpriseSkills` | `pptx-,docx-,excel-enterprise` | Which enterprise skills to install |
 | `-AnthropicSkills` | `pptx, docx, pdf, xlsx` | Which Anthropic skills to install |
 | `-SentrySkills` | `excel-toolkit, writing-plans` | Skills from Sentry01/copilot-cli-skills |
