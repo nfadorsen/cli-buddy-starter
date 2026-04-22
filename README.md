@@ -57,12 +57,31 @@ The installer prints what it's doing section by section. Each section either
 succeeds, fails with a clear message, or is skipped (e.g., if `gh` isn't
 authenticated yet). Re-running is safe.
 
+If anything fails, a **"Next steps for failures"** block at the end shows the
+exact command to re-run for each failed item, so you don't need to scroll
+through the log.
+
+### One-line install with parameters
+
+Plain `iwr | iex` ignores parameters. To skip a section or pass `-Force`,
+use this form — it streams the script straight into a script block:
+
+```powershell
+& ([scriptblock]::Create((iwr -UseBasicParsing `
+  https://raw.githubusercontent.com/nfadorsen/cli-buddy-starter/main/install.ps1).Content)) `
+  -Skip plugins
+```
+
+Replace `-Skip plugins` with any combination of parameters (see the table
+below).
+
 At the end you'll see a summary like:
 
 ```
 == Summary
 Enterprise skills      : 3 ok, 0 failed
 Anthropic skills       : 4 ok, 0 failed
+Community skills       : 3 ok, 0 failed
 Copilot plugins        : 3 ok, 0 failed
 Instructions snippet   : manual (see next steps)
 ```
@@ -72,12 +91,23 @@ Instructions snippet   : manual (see next steps)
 This is optional but recommended. It makes Copilot CLI behave more
 predictably around Office files.
 
+**Pick where to install it:**
+
+- **Recommended — user-level (applies everywhere):** `~/.copilot/copilot-instructions.md`
+  Create the file if it doesn't exist. Copilot CLI loads this on every session,
+  so the IRM / Office routing guidance applies no matter which repo you're in.
+- **Alternative — repo-level (applies only inside one repo):**
+  `<repo>/.github/copilot-instructions.md`. Use this only if you want the
+  guidance scoped to a specific project.
+
+**Steps:**
+
 1. Open this file in your browser:
    https://github.com/nfadorsen/cli-buddy-starter/blob/main/copilot-instructions.snippet.md
 2. Click **Raw** (top-right of the file view).
 3. Copy **everything** - including the `<!-- BEGIN ... -->` and
    `<!-- END ... -->` comment lines.
-4. Open your repo's `.github/copilot-instructions.md` (create it if missing).
+4. Open the target file (see above) - create it if it doesn't exist.
 5. Paste **at the end** of the file. Don't replace anything above.
 6. Save. Next Copilot CLI session picks it up automatically.
 
@@ -111,11 +141,10 @@ this to confirm everything is wired up.
 
 ## Customize / skip sections
 
-The installer takes optional parameters. Run locally (not via `iwr | iex`)
-to pass them:
+The one-line install above accepts parameters via the `scriptblock` form.
+Or download once and run locally:
 
 ```powershell
-# Download once and run with custom args
 iwr https://raw.githubusercontent.com/nfadorsen/cli-buddy-starter/main/install.ps1 `
   -OutFile $env:TEMP\install.ps1
 & $env:TEMP\install.ps1 -Skip anthropic,plugins -Force
@@ -151,8 +180,16 @@ Remove-Item "$env:USERPROFILE\.copilot\skills\pptx-enterprise"  -Recurse -Force
 Remove-Item "$env:USERPROFILE\.copilot\skills\docx-enterprise"  -Recurse -Force
 Remove-Item "$env:USERPROFILE\.copilot\skills\excel-enterprise" -Recurse -Force
 
-# Anthropic skills (from inside Copilot CLI)
-#   /skills remove <path shown by /skills list>
+# Anthropic skills
+Remove-Item "$env:USERPROFILE\.copilot\skills\pptx" -Recurse -Force
+Remove-Item "$env:USERPROFILE\.copilot\skills\docx" -Recurse -Force
+Remove-Item "$env:USERPROFILE\.copilot\skills\pdf"  -Recurse -Force
+Remove-Item "$env:USERPROFILE\.copilot\skills\xlsx" -Recurse -Force
+
+# Community skills (Sentry01 + jimbanach)
+Remove-Item "$env:USERPROFILE\.copilot\skills\excel-toolkit" -Recurse -Force
+Remove-Item "$env:USERPROFILE\.copilot\skills\writing-plans" -Recurse -Force
+Remove-Item "$env:USERPROFILE\.copilot\skills\research"      -Recurse -Force
 
 # Plugins (from inside Copilot CLI or CLI)
 copilot plugin uninstall microsoft-docs@awesome-copilot
@@ -160,8 +197,13 @@ copilot plugin uninstall power-bi-development@awesome-copilot
 copilot plugin uninstall workiq@copilot-plugins
 
 # Instructions snippet
-#   delete everything between BEGIN / END markers in .github/copilot-instructions.md
+#   Delete everything between BEGIN / END markers in either
+#   ~/.copilot/copilot-instructions.md  (user-level)  OR
+#   <repo>/.github/copilot-instructions.md  (repo-level)
 ```
+
+> Note: `gh skill` has no `uninstall` subcommand at the time of writing -
+> removing the skill folder is the supported uninstall path.
 
 ## Troubleshooting
 

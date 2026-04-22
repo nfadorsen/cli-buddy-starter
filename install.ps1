@@ -59,6 +59,12 @@ $summary = [ordered]@{
     'Copilot plugins'   = 'skipped'
     'Instructions snippet' = 'manual (see next steps)'
 }
+$failures = New-Object System.Collections.Generic.List[object]
+function AddFailure($section, $item, $reason, $retry) {
+    $failures.Add([pscustomobject]@{
+        Section = $section; Item = $item; Reason = "$reason".Trim(); Retry = $retry
+    })
+}
 
 Write-Host ""
 Write-Host "CLI Buddy Starter - Copilot CLI setup" -ForegroundColor White
@@ -127,7 +133,11 @@ if (InSkip 'enterprise') {
     $okCount = 0; $failCount = 0
     foreach ($s in $EnterpriseSkills) {
         try { if (Download-SkillFolder -Skill $s) { $okCount++ } }
-        catch { Fail2 "$s failed: $($_.Exception.Message)"; $failCount++ }
+        catch {
+            Fail2 "$s failed: $($_.Exception.Message)"; $failCount++
+            AddFailure 'Enterprise skills' $s $_.Exception.Message `
+                "download install.ps1 and re-run: .\install.ps1 -Skip anthropic,community,plugins,snippet -Force"
+        }
     }
     $summary['Enterprise skills'] = "$okCount ok, $failCount failed"
 }
@@ -154,9 +164,13 @@ if (InSkip 'anthropic') {
         try {
             $out = & gh skill install anthropics/skills $s --scope user --force 2>&1
             if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
-            else { Fail2 "$s failed: $out"; $failCount++ }
+            else {
+                Fail2 "$s failed: $out"; $failCount++
+                AddFailure 'Anthropic skills' $s $out "gh skill install anthropics/skills $s --scope user --force"
+            }
         } catch {
             Fail2 "$s failed: $($_.Exception.Message)"; $failCount++
+            AddFailure 'Anthropic skills' $s $_.Exception.Message "gh skill install anthropics/skills $s --scope user --force"
         }
     }
     $summary['Anthropic skills'] = "$okCount ok, $failCount failed"
@@ -179,9 +193,13 @@ if (InSkip 'community') {
         try {
             $out = & gh skill install Sentry01/copilot-cli-skills $s --scope user --force 2>&1
             if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
-            else { Fail2 "$s failed: $out"; $failCount++ }
+            else {
+                Fail2 "$s failed: $out"; $failCount++
+                AddFailure 'Community skills' $s $out "gh skill install Sentry01/copilot-cli-skills $s --scope user --force"
+            }
         } catch {
             Fail2 "$s failed: $($_.Exception.Message)"; $failCount++
+            AddFailure 'Community skills' $s $_.Exception.Message "gh skill install Sentry01/copilot-cli-skills $s --scope user --force"
         }
     }
 
@@ -190,9 +208,13 @@ if (InSkip 'community') {
         try {
             $out = & gh skill install jimbanach/copilot-cli-starter "$s@$JimbanachRef" --scope user --force 2>&1
             if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
-            else { Fail2 "$s failed: $out"; $failCount++ }
+            else {
+                Fail2 "$s failed: $out"; $failCount++
+                AddFailure 'Community skills' $s $out "gh skill install jimbanach/copilot-cli-starter $s@$JimbanachRef --scope user --force"
+            }
         } catch {
             Fail2 "$s failed: $($_.Exception.Message)"; $failCount++
+            AddFailure 'Community skills' $s $_.Exception.Message "gh skill install jimbanach/copilot-cli-starter $s@$JimbanachRef --scope user --force"
         }
     }
 
@@ -216,9 +238,13 @@ if (InSkip 'plugins') {
         try {
             $out = & copilot plugin install $p 2>&1
             if ($LASTEXITCODE -eq 0) { Ok "$p installed"; $okCount++ }
-            else { Fail2 "$p failed: $out"; $failCount++ }
+            else {
+                Fail2 "$p failed: $out"; $failCount++
+                AddFailure 'Copilot plugins' $p $out "copilot plugin install $p"
+            }
         } catch {
             Fail2 "$p failed: $($_.Exception.Message)"; $failCount++
+            AddFailure 'Copilot plugins' $p $_.Exception.Message "copilot plugin install $p"
         }
     }
     $summary['Copilot plugins'] = "$okCount ok, $failCount failed"
@@ -235,11 +261,13 @@ if (InSkip 'snippet') {
     Info "The instructions snippet is a small guidance block that makes Copilot CLI"
     Info "route Office files more predictably. It's optional - the skills work without it."
     Info ""
-    Info "To add it:"
+    Info "To add it (recommended - applies everywhere):"
     Info "  1. Open: https://github.com/$Repo/blob/$Branch/copilot-instructions.snippet.md"
     Info "  2. Click Raw, copy EVERYTHING (including BEGIN/END markers)"
-    Info "  3. Paste at the END of your .github/copilot-instructions.md"
+    Info "  3. Paste at the END of ~/.copilot/copilot-instructions.md (create if missing)"
     Info "  4. Do NOT replace anything above the block"
+    Info ""
+    Info "  (For a single repo only, paste into that repo's .github/copilot-instructions.md instead.)"
 }
 
 # ------------- summary -------------
@@ -247,6 +275,29 @@ Write-Host ""
 Write-Host "== Summary" -ForegroundColor White
 foreach ($k in $summary.Keys) {
     "{0,-22} : {1}" -f $k, $summary[$k] | Write-Host
+}
+
+if ($failures.Count -gt 0) {
+    Write-Host ""
+    Write-Host "== Next steps for failures" -ForegroundColor Yellow
+    Write-Host "The items below did not install. Most are fixable by re-running the specific command." -ForegroundColor DarkGray
+    Write-Host ""
+    foreach ($f in $failures) {
+        Write-Host ("  [{0}] {1}" -f $f.Section, $f.Item) -ForegroundColor Yellow
+        if ($f.Reason) {
+            $line = ($f.Reason -split "`r?`n" | Where-Object { $_.Trim() } | Select-Object -First 1)
+            if ($line) {
+                if ($line.Length -gt 220) { $line = $line.Substring(0, 220) + '...' }
+                Write-Host ("    reason : {0}" -f $line) -ForegroundColor DarkGray
+            }
+        }
+        Write-Host ("    retry  : {0}" -f $f.Retry) -ForegroundColor DarkGray
+    }
+    Write-Host ""
+    Write-Host "Common causes:" -ForegroundColor DarkGray
+    Write-Host "  - gh CLI not authenticated  -> gh auth login --hostname github.com" -ForegroundColor DarkGray
+    Write-Host "  - wrong plugin marketplace  -> check README troubleshooting section" -ForegroundColor DarkGray
+    Write-Host "  - GitHub API rate limit     -> wait 60 min or authenticate gh CLI" -ForegroundColor DarkGray
 }
 
 Write-Host ""
