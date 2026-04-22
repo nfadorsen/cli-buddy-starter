@@ -276,18 +276,14 @@ if (InSkip 'snippet') {
     Info "The snippet is a guidance block that makes Copilot CLI route Office files"
     Info "more predictably. Optional - the skills work without it."
     Info ""
-    if ($blockPresent)  { Info "Detected: existing snippet block in $targetFile" }
-    elseif ($fileExists){ Info "Detected: $targetFile exists (no snippet block yet)" }
-    else                { Info "Detected: $targetFile does not exist (would be created)" }
 
     $proceed = $false
     if ($AddSnippet) {
         Info "Proceeding automatically (-AddSnippet)"
         $proceed = $true
     } else {
-        $promptText = if ($blockPresent) { "Replace the existing snippet block? [y/N]" } else { "Append snippet to $targetFile now? [y/N]" }
         try {
-            $answer = Read-Host $promptText
+            $answer = Read-Host "Install/update snippet in $targetFile ? [y/N]"
             $proceed = ($answer -match '^(y|yes)$')
         } catch {
             Warn2 "Non-interactive session - skipping automatic install."

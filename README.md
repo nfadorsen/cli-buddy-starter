@@ -94,15 +94,13 @@ predictably around Office files.
 **The installer asks you.** When it reaches Step 4 it prints:
 
 ```
-Detected: C:\Users\<you>\.copilot\copilot-instructions.md does not exist (would be created)
-Append snippet to C:\Users\<you>\.copilot\copilot-instructions.md now? [y/N]:
+Install/update snippet in C:\Users\<you>\.copilot\copilot-instructions.md ? [y/N]:
 ```
 
-- Press **`y`** to append automatically. The installer downloads the latest
-  snippet and writes it to `~/.copilot/copilot-instructions.md` (user-level -
-  applies everywhere). Anything already in the file is preserved.
-- Press **Enter** (default `N`) to skip. You'll see manual copy-paste steps
-  printed below.
+- Press **`y`** to install. Any existing content in the file is preserved;
+  if a previous version of the snippet is already present, it's replaced
+  in-place (no duplication).
+- Press **Enter** (default `N`) to skip. Manual copy-paste steps are printed.
 
 **Skip the prompt and auto-confirm:** pass `-AddSnippet`.
 
