@@ -27,17 +27,47 @@ magic bytes and only use COM when Python tooling genuinely can't read the file.
   COM fallback path on IRM-wrapped files
 - Python 3.9+ (optional, used for the fast path on non-IRM files)
 
-## Install (one line)
+## Install
 
-Open PowerShell and run:
+Setup has two steps. Both are copy-paste, both use native mechanisms, both are reversible.
+
+### Step 1 — Install the enterprise skills (PowerShell, no admin)
 
 ```powershell
 iwr https://raw.githubusercontent.com/nfadorsen/cli-buddy-starter/main/install.ps1 | iex
 ```
 
-This downloads the three skill folders into `%USERPROFILE%\.copilot\skills\`.
-No admin, no registry changes, no scheduled tasks, no telemetry. [See the
-installer script for full details](./install.ps1).
+This downloads `pptx-enterprise`, `docx-enterprise`, and `excel-enterprise` into
+`%USERPROFILE%\.copilot\skills\`. No admin, no registry changes, no scheduled
+tasks, no telemetry. [See the installer script for full details](./install.ps1).
+
+### Step 2 — (Optional) Add extra GitHub-hosted skills
+
+If you also want `pptx`, `docx`, `pdf`, `meeting-prep`, `project-status`, and
+`research` (general-purpose skills, not IRM-aware), open a Copilot CLI session
+and run:
+
+```
+/skills
+```
+
+Add this as a skill source:
+
+```
+https://github.com/jimbanach/copilot-cli-starter
+```
+
+(pin to tag `v1.5.1` if prompted). Copilot CLI will manage installs and
+updates from there natively — you don't need to re-run anything from this repo
+to keep them current.
+
+> Copilot CLI ships with `writing-plans` and `excel-toolkit` built in, so you
+> don't need to install those separately.
+
+### Verify
+
+Inside a Copilot CLI session, run `/skills` (or `/env`) to confirm all the
+expected skills are loaded.
 
 ## Uninstall
 
