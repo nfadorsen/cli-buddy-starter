@@ -236,15 +236,23 @@ if (InSkip 'anthropic') {
     Warn2 "Then re-run this installer."
     $summary['Anthropic skills'] = 'skipped (gh not authenticated)'
 } else {
+    # Disable any interactive prompts from gh for the duration of this script.
+    # Combined with --agent, this forces gh skill install to run fully non-interactively.
+    # We do NOT capture gh's output (2>&1 makes stdout a pipe, which on some machines
+    # causes gh to hang on a warning prompt we never see). Letting gh write to the
+    # terminal gives the user real progress and preserves exit codes.
+    $prevPromptDisabled = $env:GH_PROMPT_DISABLED
+    $env:GH_PROMPT_DISABLED = '1'
+
     $okCount = 0; $failCount = 0
     foreach ($s in $AnthropicSkills) {
         Info "Installing anthropics/skills :: $s$(Desc $s)"
         try {
-            $out = & gh skill install anthropics/skills $s --agent github-copilot --scope user --force 2>&1
+            & gh skill install anthropics/skills $s --agent github-copilot --scope user --force | Out-Host
             if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
             else {
-                Fail2 "$s failed: $out"; $failCount++
-                AddFailure 'Anthropic skills' $s $out "gh skill install anthropics/skills $s --agent github-copilot --scope user --force"
+                Fail2 "$s failed (exit $LASTEXITCODE) - see gh output above"; $failCount++
+                AddFailure 'Anthropic skills' $s "gh exit $LASTEXITCODE" "gh skill install anthropics/skills $s --agent github-copilot --scope user --force"
             }
         } catch {
             Fail2 "$s failed: $($_.Exception.Message)"; $failCount++
@@ -252,6 +260,7 @@ if (InSkip 'anthropic') {
         }
     }
     $summary['Anthropic skills'] = "$okCount ok, $failCount failed"
+    $env:GH_PROMPT_DISABLED = $prevPromptDisabled
 }
 
 # ------------- 2b. Community skills -------------
@@ -264,16 +273,19 @@ if (InSkip 'community') {
     Warn2 "gh CLI missing or not authenticated -> skipping community skills."
     $summary['Community skills'] = 'skipped (gh not ready)'
 } else {
+    $prevPromptDisabled = $env:GH_PROMPT_DISABLED
+    $env:GH_PROMPT_DISABLED = '1'
+
     $okCount = 0; $failCount = 0
 
     foreach ($s in $SentrySkills) {
         Info "Installing Sentry01/copilot-cli-skills :: $s$(Desc $s)"
         try {
-            $out = & gh skill install Sentry01/copilot-cli-skills $s --agent github-copilot --scope user --force 2>&1
+            & gh skill install Sentry01/copilot-cli-skills $s --agent github-copilot --scope user --force | Out-Host
             if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
             else {
-                Fail2 "$s failed: $out"; $failCount++
-                AddFailure 'Community skills' $s $out "gh skill install Sentry01/copilot-cli-skills $s --agent github-copilot --scope user --force"
+                Fail2 "$s failed (exit $LASTEXITCODE) - see gh output above"; $failCount++
+                AddFailure 'Community skills' $s "gh exit $LASTEXITCODE" "gh skill install Sentry01/copilot-cli-skills $s --agent github-copilot --scope user --force"
             }
         } catch {
             Fail2 "$s failed: $($_.Exception.Message)"; $failCount++
@@ -284,11 +296,11 @@ if (InSkip 'community') {
     foreach ($s in $JimbanachSkills) {
         Info "Installing jimbanach/copilot-cli-starter :: $s@$JimbanachRef$(Desc $s)"
         try {
-            $out = & gh skill install jimbanach/copilot-cli-starter "$s@$JimbanachRef" --agent github-copilot --scope user --force 2>&1
+            & gh skill install jimbanach/copilot-cli-starter "$s@$JimbanachRef" --agent github-copilot --scope user --force | Out-Host
             if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
             else {
-                Fail2 "$s failed: $out"; $failCount++
-                AddFailure 'Community skills' $s $out "gh skill install jimbanach/copilot-cli-starter $s@$JimbanachRef --agent github-copilot --scope user --force"
+                Fail2 "$s failed (exit $LASTEXITCODE) - see gh output above"; $failCount++
+                AddFailure 'Community skills' $s "gh exit $LASTEXITCODE" "gh skill install jimbanach/copilot-cli-starter $s@$JimbanachRef --agent github-copilot --scope user --force"
             }
         } catch {
             Fail2 "$s failed: $($_.Exception.Message)"; $failCount++
@@ -297,6 +309,7 @@ if (InSkip 'community') {
     }
 
     $summary['Community skills'] = "$okCount ok, $failCount failed"
+    $env:GH_PROMPT_DISABLED = $prevPromptDisabled
 }
 
 # ------------- 3. Copilot plugins -------------
