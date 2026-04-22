@@ -23,12 +23,15 @@ param(
     [string]$Branch = 'main',
     [string[]]$EnterpriseSkills = @('pptx-enterprise','docx-enterprise','excel-enterprise'),
     [string[]]$AnthropicSkills  = @('pptx','docx','pdf','xlsx'),
+    [string[]]$SentrySkills     = @('excel-toolkit','writing-plans'),
+    [string[]]$JimbanachSkills  = @('meeting-prep','project-status','research'),
+    [string]$JimbanachRef       = 'v1.5.1',
     [string[]]$Plugins = @(
         'microsoft-docs@awesome-copilot',
         'power-bi-development@awesome-copilot',
         'workiq@copilot-plugins'
     ),
-    [ValidateSet('enterprise','anthropic','plugins','snippet','all','none')]
+    [ValidateSet('enterprise','anthropic','community','plugins','snippet','all','none')]
     [string[]]$Skip = @('none'),
     [switch]$Force
 )
@@ -52,6 +55,7 @@ function InSkip($name) { return ($Skip -contains $name) -or ($Skip -contains 'al
 $summary = [ordered]@{
     'Enterprise skills' = 'skipped'
     'Anthropic skills'  = 'skipped'
+    'Community skills'  = 'skipped'
     'Copilot plugins'   = 'skipped'
     'Instructions snippet' = 'manual (see next steps)'
 }
@@ -148,7 +152,7 @@ if (InSkip 'anthropic') {
     foreach ($s in $AnthropicSkills) {
         Info "Installing anthropics/skills :: $s"
         try {
-            $out = & gh skill install anthropics/skills $s --scope user 2>&1
+            $out = & gh skill install anthropics/skills $s --scope user --force 2>&1
             if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
             else { Fail2 "$s failed: $out"; $failCount++ }
         } catch {
@@ -156,6 +160,43 @@ if (InSkip 'anthropic') {
         }
     }
     $summary['Anthropic skills'] = "$okCount ok, $failCount failed"
+}
+
+# ------------- 2b. Community skills -------------
+Section '2b' "Community skills (gh skill install)"
+
+if (InSkip 'community') {
+    Warn2 "Skipping community skills (per -Skip)"
+    $summary['Community skills'] = 'skipped (per -Skip)'
+} elseif (-not $hasGh -or -not $ghAuthed) {
+    Warn2 "gh CLI missing or not authenticated -> skipping community skills."
+    $summary['Community skills'] = 'skipped (gh not ready)'
+} else {
+    $okCount = 0; $failCount = 0
+
+    foreach ($s in $SentrySkills) {
+        Info "Installing Sentry01/copilot-cli-skills :: $s"
+        try {
+            $out = & gh skill install Sentry01/copilot-cli-skills $s --scope user --force 2>&1
+            if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
+            else { Fail2 "$s failed: $out"; $failCount++ }
+        } catch {
+            Fail2 "$s failed: $($_.Exception.Message)"; $failCount++
+        }
+    }
+
+    foreach ($s in $JimbanachSkills) {
+        Info "Installing jimbanach/copilot-cli-starter :: $s@$JimbanachRef"
+        try {
+            $out = & gh skill install jimbanach/copilot-cli-starter "$s@$JimbanachRef" --scope user --force 2>&1
+            if ($LASTEXITCODE -eq 0) { Ok "$s installed"; $okCount++ }
+            else { Fail2 "$s failed: $out"; $failCount++ }
+        } catch {
+            Fail2 "$s failed: $($_.Exception.Message)"; $failCount++
+        }
+    }
+
+    $summary['Community skills'] = "$okCount ok, $failCount failed"
 }
 
 # ------------- 3. Copilot plugins -------------

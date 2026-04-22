@@ -7,12 +7,13 @@ Runs in ~2 minutes. No admin, no registry changes, no background services.
 
 ## What you get
 
-Four things in one installer:
+Five things in one installer:
 
 | # | Category | What | How it's installed |
 |---|---|---|---|
 | 1 | **Enterprise skills** | IRM-aware PowerPoint / Word / Excel handling (`pptx-enterprise`, `docx-enterprise`, `excel-enterprise`) | `install.ps1` drops folders into `~/.copilot/skills/` |
-| 2 | **Anthropic skills** | Generic `pptx`, `docx`, `pdf`, `xlsx` skills from [anthropics/skills](https://github.com/anthropics/skills) | `gh skill install` |
+| 2 | **Anthropic skills** | Generic `pptx`, `docx`, `pdf`, `xlsx` from [anthropics/skills](https://github.com/anthropics/skills) | `gh skill install` |
+| 2b | **Community skills** | `excel-toolkit`, `writing-plans` (from [Sentry01](https://github.com/Sentry01/copilot-cli-skills)); `meeting-prep`, `project-status`, `research` (from [jimbanach @ v1.5.1](https://github.com/jimbanach/copilot-cli-starter)) | `gh skill install` |
 | 3 | **Copilot plugins** | `microsoft-docs`, `power-bi-development`, `workiq` | `copilot plugin install` |
 | 4 | **Instructions snippet** | Optional guidance block that teaches Copilot to route Office files correctly | Manual copy-paste |
 
@@ -124,10 +125,13 @@ Parameters:
 
 | Parameter | Default | Purpose |
 |---|---|---|
-| `-Skip` | `none` | `enterprise`, `anthropic`, `plugins`, `snippet`, `all`, or `none` (combine with commas) |
+| `-Skip` | `none` | `enterprise`, `anthropic`, `community`, `plugins`, `snippet`, `all`, or `none` (combine with commas) |
 | `-Force` | off | Overwrite existing enterprise skill folders |
 | `-EnterpriseSkills` | `pptx-,docx-,excel-enterprise` | Which enterprise skills to install |
 | `-AnthropicSkills` | `pptx, docx, pdf, xlsx` | Which Anthropic skills to install |
+| `-SentrySkills` | `excel-toolkit, writing-plans` | Skills from Sentry01/copilot-cli-skills |
+| `-JimbanachSkills` | `meeting-prep, project-status, research` | Skills from jimbanach/copilot-cli-starter |
+| `-JimbanachRef` | `v1.5.1` | Pin for the jimbanach skill repo |
 | `-Plugins` | `microsoft-docs@awesome-copilot, power-bi-development@awesome-copilot, workiq@copilot-plugins` | Which plugins to install |
 
 ## Safety properties
