@@ -24,7 +24,7 @@ param(
     [string[]]$EnterpriseSkills = @('pptx-enterprise','docx-enterprise','excel-enterprise'),
     [string[]]$AnthropicSkills  = @('pptx','docx','pdf','xlsx'),
     [string[]]$SentrySkills     = @('excel-toolkit','writing-plans'),
-    [string[]]$JimbanachSkills  = @('meeting-prep','project-status','research'),
+    [string[]]$JimbanachSkills  = @('research'),
     [string]$JimbanachRef       = 'v1.5.1',
     [string[]]$Plugins = @(
         'microsoft-docs@awesome-copilot',

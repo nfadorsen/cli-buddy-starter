@@ -13,7 +13,7 @@ Five things in one installer:
 |---|---|---|---|
 | 1 | **Enterprise skills** | IRM-aware PowerPoint / Word / Excel handling (`pptx-enterprise`, `docx-enterprise`, `excel-enterprise`) | `install.ps1` drops folders into `~/.copilot/skills/` |
 | 2 | **Anthropic skills** | Generic `pptx`, `docx`, `pdf`, `xlsx` from [anthropics/skills](https://github.com/anthropics/skills) | `gh skill install` |
-| 2b | **Community skills** | `excel-toolkit`, `writing-plans` (from [Sentry01](https://github.com/Sentry01/copilot-cli-skills)); `meeting-prep`, `project-status`, `research` (from [jimbanach @ v1.5.1](https://github.com/jimbanach/copilot-cli-starter)) | `gh skill install` |
+| 2b | **Community skills** | `excel-toolkit`, `writing-plans` (from [Sentry01](https://github.com/Sentry01/copilot-cli-skills)); `research` (from [jimbanach @ v1.5.1](https://github.com/jimbanach/copilot-cli-starter)) | `gh skill install` |
 | 3 | **Copilot plugins** | `microsoft-docs`, `power-bi-development`, `workiq` | `copilot plugin install` |
 | 4 | **Instructions snippet** | Optional guidance block that teaches Copilot to route Office files correctly | Manual copy-paste |
 
@@ -130,7 +130,7 @@ Parameters:
 | `-EnterpriseSkills` | `pptx-,docx-,excel-enterprise` | Which enterprise skills to install |
 | `-AnthropicSkills` | `pptx, docx, pdf, xlsx` | Which Anthropic skills to install |
 | `-SentrySkills` | `excel-toolkit, writing-plans` | Skills from Sentry01/copilot-cli-skills |
-| `-JimbanachSkills` | `meeting-prep, project-status, research` | Skills from jimbanach/copilot-cli-starter |
+| `-JimbanachSkills` | `research` | Skills from jimbanach/copilot-cli-starter |
 | `-JimbanachRef` | `v1.5.1` | Pin for the jimbanach skill repo |
 | `-Plugins` | `microsoft-docs@awesome-copilot, power-bi-development@awesome-copilot, workiq@copilot-plugins` | Which plugins to install |
 
