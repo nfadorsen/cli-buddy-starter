@@ -34,7 +34,8 @@ param(
     [ValidateSet('enterprise','anthropic','community','plugins','snippet','all','none')]
     [string[]]$Skip = @('none'),
     [switch]$Force,
-    [switch]$AddSnippet
+    [switch]$AddSnippet,
+    [switch]$SetExecutionPolicy
 )
 
 $ErrorActionPreference = 'Stop'
@@ -110,6 +111,58 @@ if ($hasGh) {
 if ($hasGh)      { Ok "gh CLI found" }            else { Warn2 "gh CLI not found (needed for Anthropic skills)" }
 if ($ghAuthed)   { Ok "gh CLI authenticated" }    elseif ($hasGh) { Warn2 "gh CLI not authenticated (run: gh auth login)" }
 if ($hasCopilot) { Ok "copilot CLI found" }       else { Warn2 "copilot CLI not found (needed for plugins)" }
+
+# Execution policy check - Windows default 'Restricted' blocks copilot.ps1 (used by plugin installs).
+# Fix: Set CurrentUser scope to RemoteSigned. No admin required, safe default for dev machines.
+$epEffective   = Get-ExecutionPolicy
+$epBlocking    = @('Restricted','AllSigned','Undefined')
+$epIsBlocking  = $epEffective -in $epBlocking
+$epGpoForced   = $false
+if ($epIsBlocking) {
+    try {
+        $epMachine = Get-ExecutionPolicy -Scope MachinePolicy
+        $epUser    = Get-ExecutionPolicy -Scope UserPolicy
+        if (($epMachine -in @('Restricted','AllSigned')) -or ($epUser -in @('Restricted','AllSigned'))) {
+            $epGpoForced = $true
+        }
+    } catch { $epGpoForced = $false }
+}
+
+if ($epIsBlocking) {
+    Warn2 "PowerShell execution policy is '$epEffective' - this blocks 'copilot' plugin installs"
+    if ($epGpoForced) {
+        Warn2 "Policy is enforced by Group Policy - cannot override without IT. Plugins (Step 3) will be skipped."
+    } else {
+        $doSet = $false
+        if ($SetExecutionPolicy) {
+            $doSet = $true
+            Info "Setting execution policy (per -SetExecutionPolicy)"
+        } else {
+            try {
+                $answer = Read-Host "Set CurrentUser execution policy to 'RemoteSigned' now? (no admin, recommended) [y/N]"
+                $doSet  = ($answer -match '^(y|yes)$')
+            } catch {
+                Warn2 "Non-interactive session - skipping auto-fix. Plugins (Step 3) will fail."
+                Warn2 "Re-run with -SetExecutionPolicy, or run manually: Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned"
+            }
+        }
+        if ($doSet) {
+            try {
+                Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force -ErrorAction Stop
+                Ok "Set CurrentUser execution policy to RemoteSigned"
+                $epIsBlocking = $false
+            } catch {
+                Fail2 "Could not set execution policy: $($_.Exception.Message)"
+                Warn2 "Run manually: Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned"
+            }
+        } else {
+            Warn2 "Skipping execution policy change. Plugins (Step 3) will fail with 'running scripts is disabled'."
+            Warn2 "To fix later: Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned"
+        }
+    }
+} else {
+    Ok "PowerShell execution policy OK ($epEffective)"
+}
 
 # ------------- 1. Enterprise skills -------------
 Section 1 "Enterprise skills (~/.copilot/skills)"
@@ -382,6 +435,7 @@ if ($failures.Count -gt 0) {
     Write-Host ""
     Write-Host "Common causes:" -ForegroundColor DarkGray
     Write-Host "  - gh CLI not authenticated  -> gh auth login --hostname github.com" -ForegroundColor DarkGray
+    Write-Host "  - 'running scripts is disabled'  -> Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned" -ForegroundColor DarkGray
     Write-Host "  - wrong plugin marketplace  -> check README troubleshooting section" -ForegroundColor DarkGray
     Write-Host "  - GitHub API rate limit     -> wait 60 min or authenticate gh CLI" -ForegroundColor DarkGray
 }

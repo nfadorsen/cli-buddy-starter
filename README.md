@@ -50,12 +50,19 @@ errors. The installer keeps them straight.
 Open PowerShell and run:
 
 ```powershell
-iwr https://raw.githubusercontent.com/nfadorsen/cli-buddy-starter/main/install.ps1 | iex
+iwr -UseBasicParsing https://raw.githubusercontent.com/nfadorsen/cli-buddy-starter/main/install.ps1 | iex
 ```
+
+> On Windows PowerShell 5.1 you can omit `-UseBasicParsing` but you'll see
+> a security warning; answer `y` and it proceeds. PowerShell 7+ ignores it.
 
 The installer prints what it's doing section by section. Each section either
 succeeds, fails with a clear message, or is skipped (e.g., if `gh` isn't
 authenticated yet). Re-running is safe.
+
+On a fresh machine, the installer's pre-flight step detects the default
+Windows PowerShell execution policy (`Restricted`) that blocks plugin
+installs, and offers to fix it for you (CurrentUser scope, no admin).
 
 If anything fails, a **"Next steps for failures"** block at the end shows the
 exact command to re-run for each failed item, so you don't need to scroll
@@ -175,6 +182,7 @@ Parameters:
 | `-Skip` | `none` | `enterprise`, `anthropic`, `community`, `plugins`, `snippet`, `all`, or `none` (combine with commas) |
 | `-Force` | off | Overwrite existing enterprise skill folders |
 | `-AddSnippet` | off | Auto-confirm the Step 4 snippet install (no `[y/N]` prompt) |
+| `-SetExecutionPolicy` | off | Auto-confirm the Step 0 execution policy fix (no `[y/N]` prompt) |
 | `-EnterpriseSkills` | `pptx-,docx-,excel-enterprise` | Which enterprise skills to install |
 | `-AnthropicSkills` | `pptx, docx, pdf, xlsx` | Which Anthropic skills to install |
 | `-SentrySkills` | `excel-toolkit, writing-plans` | Skills from Sentry01/copilot-cli-skills |
@@ -229,6 +237,18 @@ copilot plugin uninstall workiq@copilot-plugins
 **`gh skill install` says I'm not authenticated.**
 Run `gh auth login --hostname github.com`, pick HTTPS + web browser, then
 re-run the installer.
+
+**Plugin installs fail with `running scripts is disabled on this system`.**
+Windows PowerShell's default execution policy is `Restricted`, which blocks
+the `copilot.ps1` shim that `copilot plugin install` uses. Fix in one line:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+Then re-run the installer. `CurrentUser` scope requires no admin. The
+installer's pre-flight step will offer to do this for you automatically on
+future runs.
 
 **A plugin install fails with "plugin not found".**
 The marketplace name matters. `microsoft-docs@copilot-plugins` doesn't
