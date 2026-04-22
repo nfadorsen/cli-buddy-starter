@@ -1,133 +1,185 @@
 # CLI Buddy Starter
 
-Enterprise-aware Copilot CLI skills for Windows users whose Office files are
-protected by **Microsoft Information Protection (IRM / sensitivity labels)**.
+One-command setup for **GitHub Copilot CLI** on a Windows machine, tuned for
+people who work with sensitivity-labeled (IRM) Microsoft Office files.
 
-If you've ever tried to have Copilot read a `.pptx`, `.docx`, or `.xlsx` only
-to have it fail with `BadZipFile` or silently return nothing — this is the fix.
+Runs in ~2 minutes. No admin, no registry changes, no background services.
 
-## What's included
+## What you get
 
-Three local skills that plug into the GitHub Copilot CLI:
+Four things in one installer:
 
-| Skill | What it does |
-|---|---|
-| `pptx-enterprise` | Reads, analyzes, edits, and creates PowerPoint decks. Detects IRM/OLE2-wrapped containers and uses PowerPoint COM when Python can't parse the file. Preserves sensitivity labels on save. |
-| `docx-enterprise` | Reads, analyzes, and edits Word docs. Detects IRM/OLE2-wrapped containers and uses Word COM when `python-docx` fails. Preserves sensitivity labels. |
-| `excel-enterprise` | Reads and analyzes workbooks. Detects IRM/OLE2-wrapped workbooks and falls back to Excel COM export (CSV) for analysis. Never modifies the source workbook. |
+| # | Category | What | How it's installed |
+|---|---|---|---|
+| 1 | **Enterprise skills** | IRM-aware PowerPoint / Word / Excel handling (`pptx-enterprise`, `docx-enterprise`, `excel-enterprise`) | `install.ps1` drops folders into `~/.copilot/skills/` |
+| 2 | **Anthropic skills** | Generic `pptx`, `docx`, `pdf`, `xlsx` skills from [anthropics/skills](https://github.com/anthropics/skills) | `gh skill install` |
+| 3 | **Copilot plugins** | `microsoft-docs`, `power-bi-development`, `workiq` | `copilot plugin install` |
+| 4 | **Instructions snippet** | Optional guidance block that teaches Copilot to route Office files correctly | Manual copy-paste |
 
-All three skills follow a **detect-first** pattern: they sniff the file's
-magic bytes and only use COM when Python tooling genuinely can't read the file.
+Categories 1-3 are done by the installer. Category 4 is a 30-second copy-paste.
+
+## Mental model (keep these straight)
+
+```
+install.ps1         -> your enterprise skills      (no auth)
+gh skill install    -> community / Anthropic skills (needs gh auth)
+copilot plugin      -> live integrations           (needs copilot CLI)
+snippet             -> optional advice             (manual)
+```
+
+If someone uses the wrong command for the wrong thing, they'll get cryptic
+errors. The installer keeps them straight.
 
 ## Prerequisites
 
 - Windows 10 / 11
-- GitHub Copilot CLI already installed (`gh copilot` available in a terminal)
-- Microsoft Office installed (Word / Excel / PowerPoint) — required for the
-  COM fallback path on IRM-wrapped files
+- **GitHub CLI** (`gh`) installed - https://cli.github.com/
+- **GitHub Copilot CLI** installed - https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli
+- **GitHub CLI authenticated** - if you haven't already:
+  ```powershell
+  gh auth login --hostname github.com
+  ```
+  Choose **HTTPS** and **Login with a web browser**. One-time setup.
+- Microsoft Office installed (Word / Excel / PowerPoint) - the enterprise
+  skills' COM fallback needs it
 - Python 3.9+ (optional, used for the fast path on non-IRM files)
 
-## Install
+## Install (one line)
 
-Setup has two steps. Both are copy-paste, both use native mechanisms, both are reversible.
-
-### Step 1 — Install the enterprise skills (PowerShell, no admin)
+Open PowerShell and run:
 
 ```powershell
 iwr https://raw.githubusercontent.com/nfadorsen/cli-buddy-starter/main/install.ps1 | iex
 ```
 
-This downloads `pptx-enterprise`, `docx-enterprise`, and `excel-enterprise` into
-`%USERPROFILE%\.copilot\skills\`. No admin, no registry changes, no scheduled
-tasks, no telemetry. [See the installer script for full details](./install.ps1).
+The installer prints what it's doing section by section. Each section either
+succeeds, fails with a clear message, or is skipped (e.g., if `gh` isn't
+authenticated yet). Re-running is safe.
 
-### Step 2 — (Optional) Add extra GitHub-hosted skills
+At the end you'll see a summary like:
 
-If you also want `pptx`, `docx`, `pdf`, `meeting-prep`, `project-status`, and
-`research` (general-purpose skills, not IRM-aware), open a Copilot CLI session
-and run:
+```
+== Summary
+Enterprise skills      : 3 ok, 0 failed
+Anthropic skills       : 4 ok, 0 failed
+Copilot plugins        : 3 ok, 0 failed
+Instructions snippet   : manual (see next steps)
+```
+
+## Step 4 (manual) - add the instructions snippet
+
+This is optional but recommended. It makes Copilot CLI behave more
+predictably around Office files.
+
+1. Open this file in your browser:
+   https://github.com/nfadorsen/cli-buddy-starter/blob/main/copilot-instructions.snippet.md
+2. Click **Raw** (top-right of the file view).
+3. Copy **everything** - including the `<!-- BEGIN ... -->` and
+   `<!-- END ... -->` comment lines.
+4. Open your repo's `.github/copilot-instructions.md` (create it if missing).
+5. Paste **at the end** of the file. Don't replace anything above.
+6. Save. Next Copilot CLI session picks it up automatically.
+
+### To update the snippet later
+
+Find the block between the `BEGIN` and `END` markers in your instructions
+file, delete it, and paste the new version. Nothing else in your file is
+touched.
+
+### To remove
+
+Delete everything between the `BEGIN` and `END` markers (including the
+markers). Your original file is back to exactly what it was.
+
+## Verify
+
+Start a Copilot CLI session and run:
 
 ```
 /skills
 ```
 
-Add this as a skill source:
+You should see the enterprise and Anthropic skills listed. Then:
 
 ```
-https://github.com/jimbanach/copilot-cli-starter
+/env
 ```
 
-(pin to tag `v1.5.1` if prompted). Copilot CLI will manage installs and
-updates from there natively — you don't need to re-run anything from this repo
-to keep them current.
+Shows loaded instructions, MCP servers, skills, agents, and plugins - use
+this to confirm everything is wired up.
 
-> Copilot CLI ships with `writing-plans` and `excel-toolkit` built in, so you
-> don't need to install those separately.
+## Customize / skip sections
 
-### Verify
-
-Inside a Copilot CLI session, run `/skills` (or `/env`) to confirm all the
-expected skills are loaded.
-
-## Uninstall
-
-Delete the skill folders:
+The installer takes optional parameters. Run locally (not via `iwr | iex`)
+to pass them:
 
 ```powershell
-Remove-Item "$env:USERPROFILE\.copilot\skills\pptx-enterprise"  -Recurse -Force
-Remove-Item "$env:USERPROFILE\.copilot\skills\docx-enterprise"  -Recurse -Force
-Remove-Item "$env:USERPROFILE\.copilot\skills\excel-enterprise" -Recurse -Force
+# Download once and run with custom args
+iwr https://raw.githubusercontent.com/nfadorsen/cli-buddy-starter/main/install.ps1 `
+  -OutFile $env:TEMP\install.ps1
+& $env:TEMP\install.ps1 -Skip anthropic,plugins -Force
 ```
 
-## Try it
+Parameters:
 
-Open a Copilot CLI session in any folder and ask:
-
-> "Inspect `<some-file>.pptx` and describe the structure."
-
-The CLI will auto-pick `pptx-enterprise` when the file is a `.pptx`.
-
-## Optional: instructions snippet
-
-`copilot-instructions.snippet.md` is a small, **appendable** block of
-guidance (~60 lines) for the Copilot CLI that reinforces detect-first routing,
-sensitivity-label safety, and Office COM hygiene when using these skills.
-
-It's not a full instructions file — it's meant to be **added to** your
-existing `.github/copilot-instructions.md`, not to replace it.
-
-### How to add it
-
-1. Open your repo's `.github/copilot-instructions.md` (or create one if you
-   don't have it yet).
-2. Scroll to the end.
-3. Copy the entire contents of
-   [copilot-instructions.snippet.md](./copilot-instructions.snippet.md) and
-   paste at the bottom.
-4. Keep the `<!-- BEGIN: cli-buddy-starter enterprise skills v1 -->` and
-   matching `<!-- END -->` markers intact — they make it easy to find,
-   update, or remove later.
-
-### To update later
-
-If a new version of this repo ships a revised snippet, find the block between
-your `BEGIN` / `END` markers, delete it, and paste the new version. Nothing
-else in your instructions file is touched.
-
-### To remove
-
-Delete everything between the `BEGIN` / `END` markers. That's it.
-
-The skills work fine without this snippet — it's just guidance that makes the
-assistant's routing behavior more predictable across sessions.
+| Parameter | Default | Purpose |
+|---|---|---|
+| `-Skip` | `none` | `enterprise`, `anthropic`, `plugins`, `snippet`, `all`, or `none` (combine with commas) |
+| `-Force` | off | Overwrite existing enterprise skill folders |
+| `-EnterpriseSkills` | `pptx-,docx-,excel-enterprise` | Which enterprise skills to install |
+| `-AnthropicSkills` | `pptx, docx, pdf, xlsx` | Which Anthropic skills to install |
+| `-Plugins` | `microsoft-docs@awesome-copilot, power-bi-development@awesome-copilot, workiq@copilot-plugins` | Which plugins to install |
 
 ## Safety properties
 
 - No admin / elevation required
-- No telemetry, no network beyond GitHub (install) and local Office (runtime)
-- Scripts never remove or downgrade sensitivity labels
-- Scripts open source files `ReadOnly` by default; edits are explicit and opt-in
+- No telemetry. Network only to `github.com` (install) and local Office COM (runtime)
+- Enterprise skills never remove or downgrade sensitivity labels
+- Enterprise skills open source files `ReadOnly` by default; edits are explicit
 - Output is written to an `exports\` folder next to the source file
+- Every section is opt-out via `-Skip`
+
+## Uninstall
+
+```powershell
+# Enterprise skills
+Remove-Item "$env:USERPROFILE\.copilot\skills\pptx-enterprise"  -Recurse -Force
+Remove-Item "$env:USERPROFILE\.copilot\skills\docx-enterprise"  -Recurse -Force
+Remove-Item "$env:USERPROFILE\.copilot\skills\excel-enterprise" -Recurse -Force
+
+# Anthropic skills (from inside Copilot CLI)
+#   /skills remove <path shown by /skills list>
+
+# Plugins (from inside Copilot CLI or CLI)
+copilot plugin uninstall microsoft-docs@awesome-copilot
+copilot plugin uninstall power-bi-development@awesome-copilot
+copilot plugin uninstall workiq@copilot-plugins
+
+# Instructions snippet
+#   delete everything between BEGIN / END markers in .github/copilot-instructions.md
+```
+
+## Troubleshooting
+
+**`gh skill install` says I'm not authenticated.**
+Run `gh auth login --hostname github.com`, pick HTTPS + web browser, then
+re-run the installer.
+
+**A plugin install fails with "plugin not found".**
+The marketplace name matters. `microsoft-docs@copilot-plugins` doesn't
+exist - it's `microsoft-docs@awesome-copilot`. Two marketplaces ship by
+default:
+- `copilot-plugins` hosts `workiq`, `spark`, `advanced-security`
+- `awesome-copilot` hosts most community plugins including `microsoft-docs`
+  and `power-bi-development`
+
+**`/skills add <url>` doesn't work.**
+Correct - `/skills add` takes a **local directory**, not a URL. Use
+`gh skill install <repo> <name> --scope user` instead. The installer does
+this for you.
+
+**My enterprise skill isn't loading after re-install.**
+Restart your Copilot CLI session. Skills load at session start.
 
 ## Support
 
