@@ -87,12 +87,39 @@ Open a Copilot CLI session in any folder and ask:
 
 The CLI will auto-pick `pptx-enterprise` when the file is a `.pptx`.
 
-## Optional: custom instructions
+## Optional: instructions snippet
 
-`copilot-instructions.sample.md` contains a sanitized set of enterprise-
-software defaults (Office COM hygiene, IRM detection, safety rails, tone).
-Copy it into your own repo at `.github/copilot-instructions.md` and edit to
-taste. It's independent of the skills — the skills work without it.
+`copilot-instructions.snippet.md` is a small, **appendable** block of
+guidance (~60 lines) for the Copilot CLI that reinforces detect-first routing,
+sensitivity-label safety, and Office COM hygiene when using these skills.
+
+It's not a full instructions file — it's meant to be **added to** your
+existing `.github/copilot-instructions.md`, not to replace it.
+
+### How to add it
+
+1. Open your repo's `.github/copilot-instructions.md` (or create one if you
+   don't have it yet).
+2. Scroll to the end.
+3. Copy the entire contents of
+   [copilot-instructions.snippet.md](./copilot-instructions.snippet.md) and
+   paste at the bottom.
+4. Keep the `<!-- BEGIN: cli-buddy-starter enterprise skills v1 -->` and
+   matching `<!-- END -->` markers intact — they make it easy to find,
+   update, or remove later.
+
+### To update later
+
+If a new version of this repo ships a revised snippet, find the block between
+your `BEGIN` / `END` markers, delete it, and paste the new version. Nothing
+else in your instructions file is touched.
+
+### To remove
+
+Delete everything between the `BEGIN` / `END` markers. That's it.
+
+The skills work fine without this snippet — it's just guidance that makes the
+assistant's routing behavior more predictable across sessions.
 
 ## Safety properties
 
