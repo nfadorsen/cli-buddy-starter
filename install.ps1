@@ -35,7 +35,8 @@ param(
     [string[]]$Skip = @('none'),
     [switch]$Force,
     [switch]$AddSnippet,
-    [switch]$SetExecutionPolicy
+    [switch]$SetExecutionPolicy,
+    [switch]$InstallMissing
 )
 
 $ErrorActionPreference = 'Stop'
@@ -98,9 +99,74 @@ Write-Host "Source: https://github.com/$Repo (branch: $Branch)" -ForegroundColor
 # ------------- pre-flight -------------
 Section 0 "Pre-flight checks"
 
+function Refresh-PathFromEnv {
+    # After winget installs a CLI, the new PATH isn't visible to the running process.
+    # Re-read Machine + User scope PATH from the registry so subsequent HasCommand calls see the tool.
+    $machinePath = [System.Environment]::GetEnvironmentVariable('Path','Machine')
+    $userPath    = [System.Environment]::GetEnvironmentVariable('Path','User')
+    $env:Path = "$machinePath;$userPath"
+}
+
+function Try-WingetInstall {
+    param([string]$PackageId, [string]$FriendlyName)
+    if (-not (HasCommand winget)) {
+        Warn2 "winget not available - cannot auto-install $FriendlyName."
+        Warn2 "Install manually: see https://learn.microsoft.com/windows/package-manager/winget/"
+        return $false
+    }
+    Info "Installing $FriendlyName via winget (this can take ~30-60 sec)"
+    try {
+        & winget install --id $PackageId -e --accept-package-agreements --accept-source-agreements --silent | Out-Host
+        if ($LASTEXITCODE -eq 0) {
+            Ok "$FriendlyName installed"
+            Refresh-PathFromEnv
+            return $true
+        }
+        Fail2 "$FriendlyName winget install exited $LASTEXITCODE"
+        return $false
+    } catch {
+        Fail2 "$FriendlyName winget install error: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+$hasGit      = HasCommand git
 $hasGh       = HasCommand gh
 $hasCopilot  = HasCommand copilot
-$ghAuthed    = $false
+
+# Auto-install git and gh if missing (both needed by Step 3 plugins and Step 2/2b skills respectively).
+$missingTools = @()
+if (-not $hasGit) { $missingTools += @{ Id = 'Git.Git';    Name = 'git';    Cmd = 'git' } }
+if (-not $hasGh)  { $missingTools += @{ Id = 'GitHub.cli'; Name = 'gh CLI'; Cmd = 'gh'  } }
+
+if ($missingTools.Count -gt 0) {
+    foreach ($t in $missingTools) { Warn2 "$($t.Name) not found" }
+    $doInstall = $false
+    if ($InstallMissing) {
+        $doInstall = $true
+        Info "Installing missing tools (per -InstallMissing)"
+    } else {
+        try {
+            $names = ($missingTools | ForEach-Object { $_.Name }) -join ', '
+            $answer = Read-Host "Install missing tools ($names) via winget now? (no admin) [y/N]"
+            $doInstall = ($answer -match '^(y|yes)$')
+        } catch {
+            Warn2 "Non-interactive session - skipping auto-install. Re-run with -InstallMissing."
+        }
+    }
+    if ($doInstall) {
+        foreach ($t in $missingTools) {
+            if (-not (HasCommand $t.Cmd)) {
+                Try-WingetInstall -PackageId $t.Id -FriendlyName $t.Name | Out-Null
+            }
+        }
+        # Re-detect after installs
+        $hasGit = HasCommand git
+        $hasGh  = HasCommand gh
+    }
+}
+
+$ghAuthed = $false
 if ($hasGh) {
     try {
         gh auth status 2>&1 | Out-Null
@@ -108,8 +174,9 @@ if ($hasGh) {
     } catch { $ghAuthed = $false }
 }
 
+if ($hasGit)     { Ok "git found" }               else { Warn2 "git not found (needed for plugin installs)" }
 if ($hasGh)      { Ok "gh CLI found" }            else { Warn2 "gh CLI not found (needed for Anthropic skills)" }
-if ($ghAuthed)   { Ok "gh CLI authenticated" }    elseif ($hasGh) { Warn2 "gh CLI not authenticated (run: gh auth login)" }
+if ($ghAuthed)   { Ok "gh CLI authenticated" }    elseif ($hasGh) { Warn2 "gh CLI not authenticated (run: gh auth login --hostname github.com)" }
 if ($hasCopilot) { Ok "copilot CLI found" }       else { Warn2 "copilot CLI not found (needed for plugins)" }
 
 # Execution policy check - Windows default 'Restricted' blocks copilot.ps1 (used by plugin installs).
@@ -447,10 +514,11 @@ if ($failures.Count -gt 0) {
     }
     Write-Host ""
     Write-Host "Common causes:" -ForegroundColor DarkGray
-    Write-Host "  - gh CLI not authenticated  -> gh auth login --hostname github.com" -ForegroundColor DarkGray
-    Write-Host "  - 'running scripts is disabled'  -> Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned" -ForegroundColor DarkGray
-    Write-Host "  - wrong plugin marketplace  -> check README troubleshooting section" -ForegroundColor DarkGray
-    Write-Host "  - GitHub API rate limit     -> wait 60 min or authenticate gh CLI" -ForegroundColor DarkGray
+    Write-Host "  - git or gh CLI not installed  -> winget install Git.Git / winget install GitHub.cli" -ForegroundColor DarkGray
+    Write-Host "  - gh CLI not authenticated     -> gh auth login --hostname github.com" -ForegroundColor DarkGray
+    Write-Host "  - 'running scripts is disabled'-> Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned" -ForegroundColor DarkGray
+    Write-Host "  - wrong plugin marketplace     -> check README troubleshooting section" -ForegroundColor DarkGray
+    Write-Host "  - GitHub API rate limit        -> wait 60 min or authenticate gh CLI" -ForegroundColor DarkGray
 }
 
 Write-Host ""

@@ -183,6 +183,7 @@ Parameters:
 | `-Force` | off | Overwrite existing enterprise skill folders |
 | `-AddSnippet` | off | Auto-confirm the Step 4 snippet install (no `[y/N]` prompt) |
 | `-SetExecutionPolicy` | off | Auto-confirm the Step 0 execution policy fix (no `[y/N]` prompt) |
+| `-InstallMissing` | off | Auto-confirm the Step 0 `winget install` of missing `git` / `gh` (no `[y/N]` prompt) |
 | `-EnterpriseSkills` | `pptx-,docx-,excel-enterprise` | Which enterprise skills to install |
 | `-AnthropicSkills` | `pptx, docx, pdf, xlsx` | Which Anthropic skills to install |
 | `-SentrySkills` | `excel-toolkit, writing-plans` | Skills from Sentry01/copilot-cli-skills |
@@ -237,6 +238,17 @@ copilot plugin uninstall workiq@copilot-plugins
 **`gh skill install` says I'm not authenticated.**
 Run `gh auth login --hostname github.com`, pick HTTPS + web browser, then
 re-run the installer.
+
+**Plugin installs fail with `"git" is not installed or not found on PATH`.**
+Copilot CLI uses `git` to fetch remote plugin marketplaces. Install with:
+
+```powershell
+winget install --id Git.Git -e --accept-package-agreements --accept-source-agreements
+```
+
+Close and reopen PowerShell so the new PATH is picked up, then re-run the
+installer. The installer's pre-flight step will offer to do this for you
+automatically on future runs via winget.
 
 **Plugin installs fail with `running scripts is disabled on this system`.**
 Windows PowerShell's default execution policy is `Restricted`, which blocks
