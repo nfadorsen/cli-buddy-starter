@@ -184,6 +184,7 @@ Parameters:
 | `-AddSnippet` | off | Auto-confirm the Step 4 snippet install (no `[y/N]` prompt) |
 | `-SetExecutionPolicy` | off | Auto-confirm the Step 0 execution policy fix (no `[y/N]` prompt) |
 | `-InstallMissing` | off | Auto-confirm the Step 0 `winget install` of missing `git` / `gh` (no `[y/N]` prompt) |
+| `-LoginToGitHub` | off | Auto-confirm the Step 0 `gh auth login` prompt (still requires browser) |
 | `-EnterpriseSkills` | `pptx-,docx-,excel-enterprise` | Which enterprise skills to install |
 | `-AnthropicSkills` | `pptx, docx, pdf, xlsx` | Which Anthropic skills to install |
 | `-SentrySkills` | `excel-toolkit, writing-plans` | Skills from Sentry01/copilot-cli-skills |

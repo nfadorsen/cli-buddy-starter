@@ -36,7 +36,8 @@ param(
     [switch]$Force,
     [switch]$AddSnippet,
     [switch]$SetExecutionPolicy,
-    [switch]$InstallMissing
+    [switch]$InstallMissing,
+    [switch]$LoginToGitHub
 )
 
 $ErrorActionPreference = 'Stop'
@@ -176,8 +177,50 @@ if ($hasGh) {
 
 if ($hasGit)     { Ok "git found" }               else { Warn2 "git not found (needed for plugin installs)" }
 if ($hasGh)      { Ok "gh CLI found" }            else { Warn2 "gh CLI not found (needed for Anthropic skills)" }
-if ($ghAuthed)   { Ok "gh CLI authenticated" }    elseif ($hasGh) { Warn2 "gh CLI not authenticated (run: gh auth login --hostname github.com)" }
+if ($ghAuthed)   { Ok "gh CLI authenticated" }    elseif ($hasGh) { Warn2 "gh CLI not authenticated" }
 if ($hasCopilot) { Ok "copilot CLI found" }       else { Warn2 "copilot CLI not found (needed for plugins)" }
+
+# Offer to run 'gh auth login' inline if gh is installed but not authenticated.
+# gh drives the browser flow and writes the token to the OS credential store;
+# we just shell out, then re-check auth status so Steps 2/2b aren't skipped.
+if ($hasGh -and -not $ghAuthed) {
+    $doLogin = $false
+    if ($LoginToGitHub) {
+        $doLogin = $true
+        Info "Launching gh auth login (per -LoginToGitHub)"
+    } else {
+        try {
+            $answer = Read-Host "Launch 'gh auth login' now? (opens browser, ~30 sec) [y/N]"
+            $doLogin = ($answer -match '^(y|yes)$')
+        } catch {
+            Warn2 "Non-interactive session - skipping gh auth login. Re-run with -LoginToGitHub."
+        }
+    }
+    if ($doLogin) {
+        Info "Follow the prompts in your browser. You'll be asked to enter a one-time code."
+        try {
+            & gh auth login --hostname github.com --git-protocol https --web | Out-Host
+            if ($LASTEXITCODE -eq 0) {
+                # Re-check so downstream steps see the new auth state
+                try {
+                    gh auth status 2>&1 | Out-Null
+                    $ghAuthed = ($LASTEXITCODE -eq 0)
+                } catch { $ghAuthed = $false }
+                if ($ghAuthed) { Ok "gh CLI authenticated" }
+                else { Warn2 "gh auth login returned 0 but auth status check still failed - see gh output above" }
+            } else {
+                Warn2 "gh auth login exited $LASTEXITCODE - Steps 2/2b will be skipped."
+                Warn2 "Retry manually: gh auth login --hostname github.com"
+            }
+        } catch {
+            Warn2 "gh auth login failed: $($_.Exception.Message)"
+            Warn2 "Retry manually: gh auth login --hostname github.com"
+        }
+    } else {
+        Warn2 "Skipping gh auth login. Steps 2/2b will be skipped."
+        Warn2 "To fix later: gh auth login --hostname github.com"
+    }
+}
 
 # Execution policy check - Windows default 'Restricted' blocks copilot.ps1 (used by plugin installs).
 # Fix: Set CurrentUser scope to RemoteSigned. No admin required, safe default for dev machines.
